@@ -118,13 +118,15 @@ int main(void)
     std::cout << glGetString(GL_VERSION) << std::endl;
 
     float positions[] = {
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
-         0.5f, 0.5f,
+        -0.5f, -0.5f,   // index 0
+         0.5f, -0.5f,   // index 1
+         0.5f, 0.5f,    // index 2
+        -0.5f, 0.5f     // index 3
+    };
 
-         0.5f, 0.5f,
-        -0.5f, 0.5f,
-        -0.5f, -0.5f
+    unsigned int indicies[] = { //that's the index buffer
+        0, 1, 2,
+        2, 3, 0
     };
 
     unsigned int buffer;
@@ -134,6 +136,11 @@ int main(void)
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+
+    unsigned int ibo;
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indicies, GL_STATIC_DRAW); //it has to be unsigned
 
     ShaderProgramSource source = parseShader("res/shaders/basic.shader");
 
@@ -152,7 +159,7 @@ int main(void)
 
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glDrawArrays(GL_TRIANGLES, 0, 6); //0 because we start from the beginning, 3 because we have 3 vertices
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);    // 6 cause that's the number of vertices. Data is the type of indexbuffer, and lastlty pointer to the index buffer
 
 
         /* swap front and back buffers */
