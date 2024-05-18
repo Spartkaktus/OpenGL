@@ -6,30 +6,10 @@
 #include <string>
 #include <sstream>
 
-#define ASSERT(x) if (!(x)) __debugbreak();
-#define GLCall(x) GLClearError();\
-    x;\
-    ASSERT(GLLogCall(#x, __FILE__, __LINE__))
+#include "Renderer.h"
 
-//GlCall will serve as a debugger
-
-
-static void GLClearError()
-{
-    while (glGetError() != GL_NO_ERROR);
-}
-
-static bool GLLogCall(const char* function, const char* file, int line)
-{
-    while (GLenum error = glGetError())
-    {
-        std::cout << "[OpenGL Error] (" << error << "): " << function <<
-            " " << file << ":" << line << std::endl;
-        return false;
-    }
-    return true;
-}
-
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 
 struct ShaderProgramSource // struct exists only to be able to return multiple types in function
@@ -149,90 +129,82 @@ int main(void)
         std::cout << "Error" << std::endl;
 
     std::cout << glGetString(GL_VERSION) << std::endl;
-
-    float positions[] = {
-        -0.5f, -0.5f,   // index 0
-         0.5f, -0.5f,   // index 1
-         0.5f, 0.5f,    // index 2
-        -0.5f, 0.5f     // index 3
-    };
-
-    unsigned int indicies[] = { //that's the index buffer
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    unsigned int vao; //vertex array object
-    GLCall(glGenVertexArrays(1, &vao));
-    GLCall(glBindVertexArray(vao));
-
-    unsigned int buffer;
-    GLCall(glGenBuffers(1, &buffer));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer)); // glbind works in such a way that you have to select what you want to use / edit, something like layers in gimp
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), positions, GL_STATIC_DRAW)); // 4 cause there are 4 positions and 2 cause there are 2 indicies
-
-    GLCall(glEnableVertexAttribArray(0));
-    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0)); //this links buffer with vao
-
-    unsigned int ibo;
-    GLCall(glGenBuffers(1, &ibo));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indicies, GL_STATIC_DRAW)); //it has to be unsigned
-
-    ShaderProgramSource source = parseShader("res/shaders/basic.shader");
-    unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
-    GLCall(glUseProgram(shader));
-
-    GLCall(int location = glGetUniformLocation(shader, "u_Color")); //u_Color must be the same name as the uniform name in shader file
-    ASSERT(location != -1);
-    GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
-
-    //unbound everything
-    GLCall(glBindVertexArray(0));
-    GLCall(glUseProgram(0));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-
-    float r = 0.0f;
-    float increment = 0.05f;
-    /* loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
     {
-        /* render here */
+        float positions[] = {
+            -0.5f, -0.5f,   // index 0
+             0.5f, -0.5f,   // index 1
+             0.5f, 0.5f,    // index 2
+            -0.5f, 0.5f     // index 3
+        };
 
-        GLCall(glClear(GL_COLOR_BUFFER_BIT));
+        unsigned int indicies[] = { //that's the index buffer
+            0, 1, 2,
+            2, 3, 0
+        };
 
-        GLCall(glUseProgram(shader));
-        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
-        /*
-        * we don't need to have this, when we have vertex arrays(vao in this case)
-        GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
-        GLCall(glEnableVertexAttribArray(0));
-        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
-        */
+        unsigned int vao; //vertex array object
+        GLCall(glGenVertexArrays(1, &vao));
         GLCall(glBindVertexArray(vao));
-        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+
+        VertexBuffer vb(positions, 4 * 2 * sizeof(float));
+
+        GLCall(glEnableVertexAttribArray(0));
+        GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0)); //this links buffer with vao
+
+        IndexBuffer ib(indicies, 6);
+
+        ShaderProgramSource source = parseShader("res/shaders/basic.shader");
+        unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
+        GLCall(glUseProgram(shader));
+
+        GLCall(int location = glGetUniformLocation(shader, "u_Color")); //u_Color must be the same name as the uniform name in shader file
+        ASSERT(location != -1);
+        GLCall(glUniform4f(location, 0.8f, 0.3f, 0.8f, 1.0f));
+
+        //unbound everything
+        GLCall(glBindVertexArray(0));
+        GLCall(glUseProgram(0));
+        GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+        float r = 0.0f;
+        float increment = 0.05f;
+        /* loop until the user closes the window */
+        while (!glfwWindowShouldClose(window))
+        {
+            /* render here */
+
+            GLCall(glClear(GL_COLOR_BUFFER_BIT));
+
+            GLCall(glUseProgram(shader));
+            GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+            GLCall(glBindVertexArray(vao));
+            ib.Bind();
 
 
-        //IT HAS TO BE UNSIGNED INT
-        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));    // 6 cause that's the number of vertices. Data is the type of indexbuffer, and lastlty pointer to the index buffer
+            //IT HAS TO BE UNSIGNED INT
+            GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));    // 6 cause that's the number of vertices. Data is the type of indexbuffer, and lastlty pointer to the index buffer
 
-        if (r > 1.0f)
-            increment = -0.05f;
-        else if (r < 0.0f)
-            increment = 0.05f;
+            if (r > 1.0f)
+                increment = -0.05f;
+            else if (r < 0.0f)
+                increment = 0.05f;
 
-        r += increment;
+            r += increment;
 
-        /* swap front and back buffers */
-        glfwSwapBuffers(window);
+            /* swap front and back buffers */
+            glfwSwapBuffers(window);
 
-        /* poll for and process events */
-        glfwPollEvents();
+            /* poll for and process events */
+            glfwPollEvents();
+        }
+
+        GLCall(glDeleteProgram(shader));
     }
-
-    GLCall(glDeleteProgram(shader));
-
     glfwTerminate();
     return 0;
 }
+
+
+//opengl recommends using vaos(vertex arrays objects)
