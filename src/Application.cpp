@@ -16,6 +16,9 @@
 #include "Texture.h"
 
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+
 int main(void)
 {
     GLFWwindow* window;
@@ -44,7 +47,6 @@ int main(void)
     }
 
     /* Make the window's context current */
-
 
     glfwMakeContextCurrent(window);
 
@@ -80,6 +82,8 @@ int main(void)
 
         IndexBuffer ib(indicies, 6);
 
+        glm::mat4 proj = glm::ortho(-2.0f, 2.0f, -1.5f, 1.5f, -1.0f, 1.0f);
+
 
         Shader shader("res/shaders/Basic.shader");
         shader.Bind();
@@ -107,6 +111,7 @@ int main(void)
 
             shader.Bind();
             shader.SetUniform4f("u_Color", r, 0.3f, 0.8f, 1.0f);
+            shader.SetUniformMat4f("u_MVP", proj);
 
 
             renderer.Draw(va, ib, shader);
@@ -131,3 +136,4 @@ int main(void)
 
 
 //opengl recommends using vaos(vertex arrays objects)
+//texture.cpp need to be compiled separately first
